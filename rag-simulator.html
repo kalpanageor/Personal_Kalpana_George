@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Simulator — Learn Retrieval Augmented Generation</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    :root {
+        --bg: #f5f7fb;
+        --card: #ffffff;
+        --text: #172033;
+        --muted: #667085;
+        --border: #e4e7ec;
+        --primary: #635bff;
+        --primary-soft: #eeedff;
+        --green: #12b76a;
+        --green-soft: #e8f8f0;
+        --orange: #f79009;
+        --orange-soft: #fff4e5;
+        --red: #f04438;
+        --blue: #1570ef;
+        --blue-soft: #eaf2ff;
+        --shadow: 0 10px 30px rgba(16, 24, 40, 0.07);
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                     Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+    }
+
+    /* HEADER */
+
+    header {
+        background: #ffffff;
+        border-bottom: 1px solid var(--border);
+        padding: 18px 5%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 700;
+        font-size: 18px;
+    }
+
+    .logo {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: var(--primary);
+        color: white;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+    }
+
+    .badge {
+        background: var(--primary-soft);
+        color: var(--primary);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    /* HERO */
+
+    .hero {
+        max-width: 1200px;
+        margin: 55px auto 30px;
+        padding: 0 24px;
+        text-align: center;
+    }
+
+    .eyebrow {
+        display: inline-block;
+        background: var(--primary-soft);
+        color: var(--primary);
+        padding: 7px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 18px;
+        letter-spacing: .4px;
+    }
+
+    h1 {
+        font-size: clamp(34px, 5vw, 58px);
+        line-height: 1.05;
+        letter-spacing: -2px;
+        margin-bottom: 18px;
+    }
+
+    .hero p {
+        max-width: 720px;
+        margin: auto;
+        color: var(--muted);
+        font-size: 17px;
+    }
+
+    /* MAIN */
+
+    main {
+        max-width: 1200px;
+        margin: auto;
+        padding: 0 24px 80px;
+    }
+
+    /* QUESTION CARD */
+
+    .question-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        border-radius: 22px;
+        padding: 24px;
+        margin-bottom: 30px;
+    }
+
+    .question-card label {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    textarea {
+        width: 100%;
+        min-height: 90px;
+        resize: vertical;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 15px;
+        font: inherit;
+        color: var(--text);
+        outline: none;
+        transition: .2s;
+    }
+
+    textarea:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px var(--primary-soft);
+    }
+
+    .button-row {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+
+    button {
+        border: 0;
+        cursor: pointer;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 14px;
+        transition: .2s;
+    }
+
+    .primary-btn {
+        background: var(--primary);
+        color: white;
+    }
+
+    .primary-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(99, 91, 255, .25);
+    }
+
+    .secondary-btn {
+        background: #f2f4f7;
+        color: var(--text);
+    }
+
+    /* PIPELINE */
+
+    .pipeline-wrapper {
+        overflow-x: auto;
+        padding-bottom: 10px;
+        margin-bottom: 35px;
+    }
+
+    .pipeline {
+        display: flex;
+        align-items: center;
+        min-width: 1050px;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .stage {
+        min-width: 130px;
+        padding: 16px 12px;
+        text-align: center;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: white;
+        transition: .3s;
+    }
+
+    .stage.active {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(99,91,255,.12);
+    }
+
+    .stage.done {
+        border-color: var(--green);
+        background: var(--green-soft);
+    }
+
+    .stage-icon {
+        font-size: 25px;
+        margin-bottom: 7px;
+    }
+
+    .stage-title {
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .stage-sub {
+        color: var(--muted);
+        font-size: 10px;
+        margin-top: 3px;
+    }
+
+    .arrow {
+        color: #98a2b3;
+        font-size: 22px;
+    }
+
+    /* CONTENT GRID */
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+    }
+
+    @media(max-width: 800px) {
+        .grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 22px;
+        box-shadow: 0 5px 20px rgba(16,24,40,.04);
+    }
+
+    .card.full {
+        grid-column: 1 / -1;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 17px;
+    }
+
+    .card h2 {
+        font-size: 17px;
+        margin-bottom: 3px;
+    }
+
+    .card-description {
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    .pill {
+        font-size: 11px;
+        padding: 5px 9px;
+        border-radius: 10px;
+        font-weight: 700;
+        background: #f2f4f7;
+        color: var(--muted);
+    }
+
+    /* DOCUMENTS */
+
+    .document {
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        padding: 13px;
+        margin-bottom: 9px;
+        cursor: pointer;
+        transition: .2s;
+    }
+
+    .document:hover,
+    .document.selected {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+    }
+
+    .doc-title {
+        font-weight: 700;
+        font-size: 13px;
+    }
+
+    .doc-text {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 5px;
+    }
+
+    /* CHUNKS */
+
+    .chunk {
+        padding: 12px;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        margin-bottom: 9px;
+        font-size: 12px;
+    }
+
+    .chunk-label {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--primary);
+        background: var(--primary-soft);
+        padding: 3px 7px;
+        border-radius: 6px;
+        margin-bottom: 6px;
+    }
+
+    /* EMBEDDINGS */
+
+    .embedding {
+        font-family: monospace;
+        font-size: 11px;
+        color: var(--blue);
+        background: var(--blue-soft);
+        padding: 12px;
+        border-radius: 10px;
+        overflow-x: auto;
+        margin-top: 8px;
+    }
+
+    .vector-bar {
+        height: 8px;
+        background: #e4e7ec;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 7px;
+    }
+
+    .vector-fill {
+        height: 100%;
+        width: 72%;
+        background: var(--primary);
+        border-radius: 10px;
+        transition: width .8s;
+    }
+
+    /* SEARCH */
+
+    .similarity {
+        margin-bottom: 14px;
+    }
+
+    .similarity-top {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .score {
+        color: var(--green);
+    }
+
+    /* CONTEXT */
+
+    .context-box {
+        background: #101828;
+        color: #e4e7ec;
+        border-radius: 14px;
+        padding: 17px;
+        font-family: monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        min-height: 160px;
+    }
+
+    .context-highlight {
+        color: #a7f3d0;
+    }
+
+    /* LLM */
+
+    .llm-box {
+        border: 2px solid var(--primary);
+        background: var(--primary-soft);
+        border-radius: 17px;
+        padding: 18px;
+    }
+
+    .llm-input {
+        background: white;
+        border-radius: 11px;
+        padding: 12px;
+        font-size: 12px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd9ff;
+    }
+
+    .answer {
+        background: white;
+        border-radius: 13px;
+        padding: 17px;
+        border: 1px solid #ddd9ff;
+        margin-top: 13px;
+        font-size: 14px;
+    }
+
+    .answer strong {
+        color: var(--primary);
+    }
+
+    /* LEARNING BOX */
+
+    .learning {
+        margin-top: 25px;
+        border-radius: 18px;
+        padding: 20px;
+        background: linear-gradient(135deg, #101828, #1d2939);
+        color: white;
+    }
+
+    .learning h3 {
+        margin-bottom: 8px;
+    }
+
+    .learning p {
+        color: #d0d5dd;
+        font-size: 13px;
+    }
+
+    .correct {
+        color: #6ce9a6;
+        font-weight: 700;
+    }
+
+    .wrong {
+        color: #fda29b;
+        font-weight: 700;
+    }
+
+    /* STEP CONTROL */
+
+    .step-control {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 18px;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .step-info {
+        font-size: 13px;
+        color: var(--muted);
+    }
+
+    .step-info strong {
+        color: var(--text);
+    }
+
+    .progress {
+        height: 6px;
+        background: #eaecf0;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 8px;
+        width: 300px;
+    }
+
+    .progress-fill {
+        height: 100%;
+        width: 0%;
+        background: var(--primary);
+        transition: .5s;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    footer {
+        text-align: center;
+        padding: 30px;
+        color: var(--muted);
+        font-size: 12px;
+    }
+
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="brand">
+        <div class="logo">R</div>
+        RAG Lab
+    </div>
+    <div class="badge">Interactive Learning Simulator</div>
+</header>
+
+
+<section class="hero">
+
+    <div class="eyebrow">RETRIEVAL AUGMENTED GENERATION</div>
+
+    <h1>See how RAG thinks.</h1>
+
+    <p>
+        Follow a question from user input to retrieval, embeddings,
+        similarity search, context construction and finally the LLM answer.
+    </p>
+
+</section>
+
+
+<main>
+
+    <!-- QUESTION -->
+
+    <section class="question-card">
+
+        <label for="question">
+            01 — Ask the system a question
+        </label>
+
+        <textarea id="question">What are the major risk factors for hemorrhagic stroke?</textarea>
+
+        <div class="button-row">
+            <button class="primary-btn" onclick="runRAG()">
+                ▶ Run RAG
+            </button>
+
+            <button class="secondary-btn" onclick="resetSimulator()">
+                Reset
+            </button>
+        </div>
+
+    </section>
+
+
+    <!-- PIPELINE -->
+
+    <div class="pipeline-wrapper">
+
+        <div class="pipeline">
+
+            <div class="stage" id="stage1">
+                <div class="stage-icon">❓</div>
+                <div class="stage-title">User Query</div>
+                <div class="stage-sub">Question</div>
+            </div>
+
+            <div class="arrow">→</div>
+
+            <div class="stage" id="stage2">
+                <div class="stage-icon">📚</div>
+                <div class="stage-title">Knowledge Base</div>
+                <div class="stage-sub">Documents</div>
+            </div>
+
+            <div class="arrow">→</div>
+
+            <div class="stage" id="stage3">
+                <div class="stage-icon">✂️</div>
+                <div class="stage-title">Chunking</div>
+                <div class="stage-sub">Smaller pieces</div>
+            </div>
+
+            <div class="arrow">→</div>
+
+            <div class="stage" id="stage4">
+                <div class="stage-icon">🔢</div>
+                <div class="stage-title">Embeddings</div>
+                <div class="stage-sub">Vectors</div>
+            </div>
+
+            <div class="arrow">→</div>
+
+            <div class="stage" id="stage5">
+                <div class="stage-icon">🔎</div>
+                <div class="stage-title">Retrieval</div>
+                <div class="stage-sub">Similarity</div>
+            </div>
+
+            <div class="arrow">→</div>
+
+            <div class="stage" id="stage6">
+                <div class="stage-icon">🧩</div>
+                <div class="stage-title">Context</div>
+                <div class="stage-sub">Prompt + data</div>
+            </div>
+
+            <div class="arrow">→</div>
+
+            <div class="stage" id="stage7">
+                <div class="stage-icon">🤖</div>
+                <div class="stage-title">LLM</div>
+                <div class="stage-sub">Generate</div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- STEP CONTROL -->
+
+    <div class="step-control">
+
+        <div>
+            <div class="step-info">
+                Current step:
+                <strong id="stepName">Ready</strong>
+            </div>
+
+            <div class="progress">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+        </div>
+
+        <button class="primary-btn" onclick="nextStep()">
+            Next Step →
+        </button>
+
+    </div>
+
+
+    <!-- CONTENT -->
+
+    <div class="grid">
+
+
+        <!-- KNOWLEDGE BASE -->
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <div>
+                    <h2>📚 Knowledge Base</h2>
+                    <div class="card-description">
+                        External information available to the RAG system
+                    </div>
+                </div>
+
+                <div class="pill">4 documents</div>
+
+            </div>
+
+
+            <div class="document">
+
+                <div class="doc-title">
+                    Document 01 — Stroke Risk Factors
+                </div>
+
+                <div class="doc-text">
+                    Hypertension is the most important modifiable risk
+                    factor for intracerebral hemorrhage...
+                </div>
+
+            </div>
+
+
+            <div class="document">
+
+                <div class="doc-title">
+                    Document 02 — Anticoagulant Therapy
+                </div>
+
+                <div class="doc-text">
+                    Anticoagulant and antiplatelet medications may increase
+                    the risk of intracranial bleeding...
+                </div>
+
+            </div>
+
+
+            <div class="document">
+
+                <div class="doc-title">
+                    Document 03 — Cerebral Amyloid Angiopathy
+                </div>
+
+                <div class="doc-text">
+                    Cerebral amyloid angiopathy is associated with lobar
+                    intracerebral hemorrhage...
+                </div>
+
+            </div>
+
+
+            <div class="document">
+
+                <div class="doc-title">
+                    Document 04 — Lifestyle Factors
+                </div>
+
+                <div class="doc-text">
+                    Smoking, excessive alcohol consumption and other
+                    vascular risk factors may contribute...
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- CHUNKING -->
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <div>
+                    <h2>✂️ Chunking</h2>
+
+                    <div class="card-description">
+                        Documents are divided into smaller searchable pieces
+                    </div>
+                </div>
+
+                <div class="pill">Example</div>
+
+            </div>
+
+
+            <div class="chunk">
+
+                <span class="chunk-label">CHUNK 01</span>
+
+                Hypertension is the most important modifiable risk factor
+                for intracerebral hemorrhage.
+
+            </div>
+
+
+            <div class="chunk">
+
+                <span class="chunk-label">CHUNK 02</span>
+
+                Anticoagulant medications can increase the risk of
+                intracranial bleeding.
+
+            </div>
+
+
+            <div class="chunk">
+
+                <span class="chunk-label">CHUNK 03</span>
+
+                Cerebral amyloid angiopathy is associated with lobar
+                intracerebral hemorrhage.
+
+            </div>
+
+
+            <div class="chunk">
+
+                <span class="chunk-label">CHUNK 04</span>
+
+                Smoking and excessive alcohol consumption are vascular
+                risk factors.
+
+            </div>
+
+        </section>
+
+
+        <!-- EMBEDDINGS -->
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <div>
+
+                    <h2>🔢 Embeddings</h2>
+
+                    <div class="card-description">
+                        Text is represented as numerical vectors
+                    </div>
+
+                </div>
+
+                <div class="pill">Vector representation</div>
+
+            </div>
+
+
+            <p style="font-size:13px;color:#667085;">
+                The text is converted into numbers that capture
+                semantic meaning.
+            </p>
+
+
+            <div class="embedding">
+
+Question embedding:
+
+[0.18, -0.42, 0.77, 0.31,
+ 0.09, -0.16, 0.81, ...]
+
+            </div>
+
+
+            <div class="embedding">
+
+Chunk embedding:
+
+[0.21, -0.39, 0.74, 0.35,
+ 0.11, -0.18, 0.79, ...]
+
+            </div>
+
+
+            <div style="margin-top:16px;font-size:12px;font-weight:700;">
+                Semantic similarity
+            </div>
+
+            <div class="vector-bar">
+                <div class="vector-fill"></div>
+            </div>
+
+            <p style="font-size:11px;color:#667085;margin-top:6px;">
+                Similar meanings → vectors are closer together
+            </p>
+
+        </section>
+
+
+        <!-- RETRIEVAL -->
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <div>
+
+                    <h2>🔎 Retrieval</h2>
+
+                    <div class="card-description">
+                        Find the chunks most relevant to the question
+                    </div>
+
+                </div>
+
+                <div class="pill">Top-K = 3</div>
+
+            </div>
+
+
+            <div class="similarity">
+
+                <div class="similarity-top">
+
+                    <span>Hypertension</span>
+
+                    <span class="score">0.94</span>
+
+                </div>
+
+                <div class="vector-bar">
+                    <div class="vector-fill" style="width:94%"></div>
+                </div>
+
+            </div>
+
+
+            <div class="similarity">
+
+                <div class="similarity-top">
+
+                    <span>Anticoagulant therapy</span>
+
+                    <span class="score">0.87</span>
+
+                </div>
+
+                <div class="vector-bar">
+                    <div class="vector-fill" style="width:87%"></div>
+                </div>
+
+            </div>
+
+
+            <div class="similarity">
+
+                <div class="similarity-top">
+
+                    <span>Cerebral amyloid angiopathy</span>
+
+                    <span class="score">0.81</span>
+
+                </div>
+
+                <div class="vector-bar">
+                    <div class="vector-fill" style="width:81%"></div>
+                </div>
+
+            </div>
+
+
+            <div class="similarity">
+
+                <div class="similarity-top">
+
+                    <span>Unrelated document</span>
+
+                    <span style="color:#f04438;">0.21</span>
+
+                </div>
+
+                <div class="vector-bar">
+                    <div class="vector-fill"
+                         style="width:21%;background:#f04438"></div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- CONTEXT -->
+
+        <section class="card full">
+
+            <div class="card-header">
+
+                <div>
+
+                    <h2>🧩 Context Construction</h2>
+
+                    <div class="card-description">
+                        Retrieved information is placed into the LLM prompt
+                    </div>
+
+                </div>
+
+                <div class="pill">Inference time</div>
+
+            </div>
+
+
+            <div class="context-box">
+
+USER QUESTION:
+
+<span class="context-highlight">
+What are the major risk factors for hemorrhagic stroke?
+</span>
+
+
+RETRIEVED CONTEXT:
+
+[1] Hypertension is the most important modifiable
+risk factor for intracerebral hemorrhage.
+
+[2] Anticoagulant medications can increase the
+risk of intracranial bleeding.
+
+[3] Cerebral amyloid angiopathy is associated
+with lobar intracerebral hemorrhage.
+
+
+INSTRUCTION:
+
+Use the retrieved context to answer the user's question.
+If the answer is not supported by the context,
+say that additional information is needed.
+
+            </div>
+
+        </section>
+
+
+        <!-- LLM -->
+
+        <section class="card full">
+
+            <div class="card-header">
+
+                <div>
+
+                    <h2>🤖 LLM Generation</h2>
+
+                    <div class="card-description">
+                        The LLM uses the question + retrieved context
+                    </div>
+
+                </div>
+
+                <div class="pill">No model training</div>
+
+            </div>
+
+
+            <div class="llm-box">
+
+                <div class="llm-input">
+
+                    <strong>Input to LLM</strong><br><br>
+
+                    User question + retrieved context + instructions
+
+                </div>
+
+
+                <div class="answer">
+
+                    <strong>Generated answer:</strong>
+
+                    <br><br>
+
+                    Major risk factors for hemorrhagic stroke include
+                    <b>hypertension</b>, use of
+                    <b>anticoagulant medications</b>, and conditions such as
+                    <b>cerebral amyloid angiopathy</b>.
+
+                    <br><br>
+
+                    The retrieved knowledge identifies hypertension as
+                    particularly important as a modifiable risk factor.
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- LEARNING -->
+
+        <section class="learning full">
+
+            <h3>🧠 The most important concept</h3>
+
+            <p>
+
+                <span class="correct">RAG does NOT teach the LLM.</span>
+
+                The LLM's parameters are not changed during a normal RAG
+                request.
+
+                <br><br>
+
+                Instead, RAG gives the LLM additional information
+                <b>at inference time</b>.
+
+                <br><br>
+
+                Think of it this way:
+
+                <br><br>
+
+                <span class="correct">
+                Fine-tuning = teaching the student.
+                </span>
+
+                <br>
+
+                <span class="correct">
+                RAG = giving the student an open notebook during the exam.
+                </span>
+
+                <br><br>
+
+                RAG also doesn't necessarily reduce the number of context
+                tokens. Instead, it avoids sending the entire knowledge base
+                and retrieves only the most relevant pieces.
+
+            </p>
+
+        </section>
+
+    </div>
+
+</main>
+
+
+<footer>
+    RAG Lab · Educational simulator · Retrieval → Context → Generation
+</footer>
+
+
+<script>
+
+let currentStep = 0;
+
+const steps = [
+    {
+        name: "User Query",
+        description: "The user asks a question."
+    },
+    {
+        name: "Knowledge Base",
+        description: "The system has access to external documents."
+    },
+    {
+        name: "Chunking",
+        description: "Documents are divided into smaller searchable pieces."
+    },
+    {
+        name: "Embeddings",
+        description: "Text is converted into numerical vectors."
+    },
+    {
+        name: "Retrieval",
+        description: "The system searches for semantically similar chunks."
+    },
+    {
+        name: "Context Construction",
+        description: "Retrieved chunks are added to the LLM prompt."
+    },
+    {
+        name: "LLM Generation",
+        description: "The LLM generates an answer using the supplied context."
+    }
+];
+
+
+function updateStages() {
+
+    for (let i = 1; i <= 7; i++) {
+
+        const stage = document.getElementById("stage" + i);
+
+        stage.classList.remove("active");
+        stage.classList.remove("done");
+
+        if (i - 1 < currentStep) {
+            stage.classList.add("done");
+        }
+
+        if (i - 1 === currentStep) {
+            stage.classList.add("active");
+        }
+    }
+
+
+    const progress =
+        document.getElementById("progress");
+
+    const percentage =
+        (currentStep / (steps.length - 1)) * 100;
+
+    progress.style.width =
+        percentage + "%";
+
+
+    document.getElementById("stepName").innerText =
+        steps[currentStep].name;
+}
+
+
+function nextStep() {
+
+    if (currentStep < steps.length - 1) {
+
+        currentStep++;
+
+        updateStages();
+
+    } else {
+
+        alert(
+            "RAG pipeline complete!\n\n" +
+            "Remember: RAG supplies context to the LLM at inference time. " +
+            "It does not train the LLM."
+        );
+
+    }
+
+}
+
+
+function runRAG() {
+
+    currentStep = 0;
+
+    updateStages();
+
+    let delay = 700;
+
+    for (let i = 1; i < steps.length; i++) {
+
+        setTimeout(() => {
+
+            currentStep = i;
+
+            updateStages();
+
+        }, delay * i);
+
+    }
+
+}
+
+
+function resetSimulator() {
+
+    currentStep = 0;
+
+    updateStages();
+
+}
+
+
+updateStages();
+
+</script>
+
+</body>
+</html>
